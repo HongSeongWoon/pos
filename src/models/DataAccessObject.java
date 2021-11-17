@@ -15,15 +15,15 @@ public class DataAccessObject {
 	}
 
 	String[][] getSalesStat(String[] month){
-		String[][] salesMonthStat = new String[this.countRecord("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\orders.txt", month, 0)][];
+		String[][] salesMonthStat = new String[this.countRecord("C:\\posbyhong\\src\\datafile\\orders.txt", month, 0)][];
 		
 		BufferedReader buffer = null;
 		try {
-			buffer = new BufferedReader(new FileReader(new File("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\orders.txt")));
+			buffer = new BufferedReader(new FileReader(new File("C:\\posbyhong\\src\\datafile\\orders.txt")));
 			String line;
 			int index = -1;
 			while((line=buffer.readLine()) != null) {
-				if(line.contains(month[0])||line.contains(month[1])) {
+				if(Integer.parseInt(month[0])<=Integer.parseInt(line.substring(0,8))&&Integer.parseInt(line.substring(0,8))<=Integer.parseInt(month[1])) {
 					index++;
 					salesMonthStat[index] = line.split(",");
 					//System.out.println(salesMonthStat[0][0]);
@@ -43,11 +43,11 @@ public class DataAccessObject {
 	}
 	
 String[][] getSalesMonthStat(String month){
-	String[][] salesMonthStat = new String[this.countRecord("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\orders.txt", month, 0)][];
+	String[][] salesMonthStat = new String[this.countRecord("C:\\posbyhong\\src\\datafile\\orders.txt", month, 0)][];
 	
 	BufferedReader buffer = null;
 	try {
-		buffer = new BufferedReader(new FileReader(new File("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\orders.txt")));
+		buffer = new BufferedReader(new FileReader(new File("C:\\posbyhong\\src\\datafile\\orders.txt")));
 		String line;
 		int index = -1;
 		while((line=buffer.readLine()) != null) {
@@ -74,7 +74,7 @@ boolean setOrders(String[] orders) {
 	boolean response = false;
 	BufferedWriter buffer=null;
 	File file = 
-			new File("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\orders.txt");
+			new File("C:\\posbyhong\\src\\datafile\\orders.txt");
 	try {
 		FileWriter writer = new FileWriter(file, true);
 		buffer = new BufferedWriter(writer);
@@ -100,7 +100,7 @@ public String[] getGoodsInfo(String goodsCode) {
 	String[] goodsInfo = null;
 	BufferedReader buffer=null;
 	try {
-		buffer = new BufferedReader(new FileReader(new File("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\goodsInfo.txt")));
+		buffer = new BufferedReader(new FileReader(new File("C:\\posbyhong\\src\\datafile\\goodsInfo.txt")));
 		String line;
 		while((line=buffer.readLine())!=null) {
 			goodsInfo = line.split("\\|");
@@ -122,7 +122,7 @@ public String[] getGoodsInfo(String goodsCode) {
 boolean setStoreState(String date, String time, int state) {
 	boolean response = false;
 	File file = 
-			new File("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\storestate.txt");
+			new File("C:\\posbyhong\\src\\datafile\\storestate.txt");
 	try {
 		FileWriter writer = new FileWriter(file, true);
 		BufferedWriter buffer = new BufferedWriter(writer);
@@ -185,7 +185,7 @@ private int countRecord(String path, String[] condition, int colIndex) {
 		//202109060918,1005,카푸치노(HOT),2700,8,0,1002  contains 202111
 		while((line=buffer.readLine()) != null) {
 			String[] record = line.split(",");
-			if(record[colIndex].contains(condition[0])||record[colIndex].contains(condition[1])) {
+			if(Integer.parseInt(condition[0])<=Integer.parseInt(line.substring(0,8))&&Integer.parseInt(line.substring(0,8))<=Integer.parseInt(condition[1])) {
 				count++;
 			}
 		}
@@ -198,7 +198,7 @@ private int countRecord(String path, String[] condition, int colIndex) {
 
 boolean setMenu(String[] data) {
 	boolean check = false;
-	File file = new File("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\goodsinfo.txt");
+	File file = new File("C:\\posbyhong\\src\\datafile\\goodsinfo.txt");
 	FileWriter writer = null;
 	BufferedWriter buffer = null;
 
@@ -226,7 +226,7 @@ boolean setMenu(String[] data) {
 
 boolean setMenu(String[][] data) {
 	boolean check = false;
-	File file = new File("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\goodsinfo.txt");
+	File file = new File("C:\\posbyhong\\src\\datafile\\goodsinfo.txt");
 	FileWriter writer = null;
 	BufferedWriter buffer = null;
 	StringBuffer line = new StringBuffer();
@@ -253,12 +253,12 @@ boolean setMenu(String[][] data) {
 	return check;
 }
 String[][] getMenu(){
-	String[][] menuList = new String[this.countRecord("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\goodsinfo.txt")][];
+	String[][] menuList = new String[this.countRecord("C:\\posbyhong\\src\\datafile\\goodsinfo.txt")][];
 	String menu = null;
 	String[] menuInfo = null;
 
 	int index = -1;
-	File file = new File("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\goodsinfo.txt");
+	File file = new File("C:\\posbyhong\\src\\datafile\\goodsinfo.txt");
 	try {
 		FileReader reader = new FileReader(file);
 		BufferedReader buffer = new BufferedReader(reader);
@@ -278,8 +278,8 @@ String[][] getMenu(){
 
 public String[][] getMemberList(){
 	/* Service Class 요청에 따른 회원 리스트를 이차원 배열로 작성 후 리턴 */
-	String[][] memberList = new String[this.countRecord("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\members.txt")][];
-	File file = new File("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\members.txt");
+	String[][] memberList = new String[this.countRecord("C:\\posbyhong\\src\\datafile\\members.txt")][];
+	File file = new File("C:\\posbyhong\\src\\datafile\\members.txt");
 	FileReader reader = null;
 	BufferedReader buffer = null;
 	String line;
@@ -303,7 +303,7 @@ public String[][] getMemberList(){
 
 public boolean setMember(String[][] memberInfo){
 	boolean check = false;
-	File file = new File("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\members.txt");
+	File file = new File("C:\\posbyhong\\src\\datafile\\members.txt");
 	FileWriter writer = null;
 	BufferedWriter buffer = null;
 	StringBuffer line = new StringBuffer();
@@ -332,7 +332,7 @@ public boolean setMember(String[][] memberInfo){
 
 public boolean setMember(String[] memberInfo){
 	boolean check = false;
-	File file = new File("C:\\Users\\홍성운\\OneDrive\\바탕 화면\\Coding\\211110\\pos by prof\\src\\datafile\\members.txt");
+	File file = new File("C:\\posbyhong\\src\\datafile\\members.txt");
 	FileWriter writer = null;
 	BufferedWriter buffer = null;
 
