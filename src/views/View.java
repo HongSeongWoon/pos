@@ -16,7 +16,7 @@ public class View {
 	/* 데이터의 흐름 제어 */
 	private void ctlView() {
 
-		String title, message = "", jobCode = "",sum="";
+		String title, message = "", request = "",sum="";
 		int menuCode=-1, subCode=0;
 		String[][] menu = saveMenu();
 		title = this.makeTitle();
@@ -24,7 +24,7 @@ public class View {
 
 		while(true) {
 
-			if(jobCode.equals("")) {
+			if(request.equals("")) {
 				if(menuCode!=4) {
 					menuCode = this.ctlMain(title, message, menu);
 					message = "";// 얘가없으면 2->0->4 입력시 요쳥이 취소되었습니다. 메세지가 살아있다.
@@ -40,29 +40,30 @@ public class View {
 				if(menuCode !=4) {
 					subCode = this.ctlSub(title, message, menu[menuCode-1]);
 					if(subCode !=0) {
-						jobCode = menuCode + "" + subCode;
+						request = menuCode + "" + subCode;
 						message = "";
 						/*joCode 13 인 경우*/
-						if(jobCode.equals("13")) {
+						if(request.equals("13")) {
 							String[] userDate={this.getDate("yyyyMM")};
-
+							request+="?"+userDate;
 							/*서버 서비스 요청*/
-							message=fc.getRequest(jobCode, userDate);
+							message=fc.getRequest(request);
 
-						}else if(jobCode.equals("14")){
+						}else if(request.equals("14")){
 							this.display("시작일입력(yyyyMMdd) : ");
 							String m1 = this.menuInput();
 							this.display("마감일입력(yyyyMMdd) : ");
 							String m2 = this.menuInput();
 							String[] userDate={m1,m2};
-							message=fc.getRequest(jobCode, userDate);
-							
+							request+="?"+m1+"&"+m2;
+							message=fc.getRequest(request);
+
 						}
 						else {
 
 							/* 서버 서비스 요청 */
 
-							message = fc.getRequest(jobCode);
+							message = fc.getRequest(request);
 						}
 					}else {
 						message = "요청이 취소되었습니다.";
@@ -79,22 +80,30 @@ public class View {
 						//판매화면이동
 
 						pos = this.posDisplay(title,orders,posDispCheck,message/*=(message.equals("요청이 취소되었습니다."))? "": message*//*, message2*/);
-						//jobCode=jobCode+pos;
-						if(pos.toUpperCase().equals("Y")||pos.toUpperCase().equals("N")) break;
-						//서버에 상품코드 전달 후 상품 정보 받기
-						// 1001,(HOT)아메리카노,2500,1,10
-						// 잡코드 입력 4S, 상품 코드를 일차원배열
-						jobCode="4S";
-						String[] search= {pos};
-						String[] order=fc.getRequest(jobCode,search).split(",");
-						posDispCheck=false;						
-						orders[recordIndex]=order;
+						//update
+						if(!pos.equals("0")) {
+							if(pos.toUpperCase().equals("Y")||pos.toUpperCase().equals("N")) break;
+							// 서버에 상품코드 전달 후 상품정보 받
+							// 상품검색 - 4S    
+							// jobCode = 4S   검색코드 - 1차원배열에 저장
+							request+=(request.equals("")?"4S":"")+"?"+pos;
+
+							String[] order=fc.getRequest(request).split(",");
+							posDispCheck=false;						
+							orders[recordIndex]=order;
+							/* request에 jobCode만 담기 */
+							request = request.substring(0, request.indexOf("?"));
+						
+						}else {
+							request ="";
+							menuCode=-1;
+							break;
+						}
 					}
 					if(pos.toUpperCase().equals("Y")) {
 						String memberCode = null;
-						jobCode="4D";
-						//finalOrder 할당
-						finalOrder = new String[recordIndex];
+						request="4D";
+
 						/*포이트 적립여부*/
 						this.display(" ----------- 포인트를 적립하시겠습니까?(y/n) : ");
 						if(this.menuInput().toUpperCase().equals("Y")) {
@@ -102,90 +111,117 @@ public class View {
 							memberCode = this.menuInput();
 						}
 						//orders --> finalOrder
-						for(int i=0; i<finalOrder.length; i++) {
-							finalOrder[i]=orders[i][0]+","+orders[i][1]+","+orders[i][2]+","+orders[i][3]+","+orders[i][4]
-									+((memberCode == null)?"":","+memberCode);
+						for(int i=0; i<recordIndex; i++) {
+							request+=((i==0)?"?":"&")+orders[i][0]+"&"+orders[i][3];
 						}
+						request+=((memberCode == null)?"":"&"+memberCode);
 						// 주문데이터 전송
 						/*	1	1001,아메리카노,2000,2,10
 							2	1002	 헤이즐넛		  		2500	3	10%
 							3	1003	 바닐라아메리카노	  	2500	2	0%
 						 *  :     :          :                :     :    :
+						 *
+						 * jobCode?1002&3&1003&2
 						 * */
-						//message2=fc.getRequest(jobCode,finalOrder);
-						message=fc.getRequest(jobCode,finalOrder);
+
+						message=fc.getRequest(request);
 
 						//System.out.println(message);
-						jobCode="";
+						request="";
 						menuCode=4;
 					}else {
-						jobCode="";
-						menuCode=4;
+						request="";
+						if(!pos.equals("0")) {
+							menuCode = 4;
+						}
 					}
 				}
 			}else {
-				if(jobCode.equals("21")) {
+				if(request.equals("21")) {
 					userData = this.regMenu(title, message);
+
 					if(userData != null) {
-						jobCode = "2R";
-						message = fc.getRequest(jobCode, userData);
-						jobCode = "21";
+						request = "2R";
+						request+="?";
+						for(int i=0;i<userData.length;i++) {
+							request+= (i==0)?userData[i]:"&"+userData[i];
+						}
+						message = fc.getRequest(request);
+						request = "21";
 					}else {
-						jobCode = "";
+						request = "";
 						message = "";
 					}					
-				}else if(jobCode.equals("31")) {
+				}else if(request.equals("31")) {
 					userData = this.ctlRegMember(title, message);
 					if(userData != null) {
-						jobCode = "3R";
-						message = fc.getRequest(jobCode, userData);
-						jobCode = "31";
+						request = "3R";
+						request+="?";
+						for(int i=0;i<userData.length;i++) {
+							request+= (i==0)?userData[i]:"&"+userData[i];
+						}						message = fc.getRequest(request);
+						request = "31";
 					}else {
-						jobCode = "";
+						request = "";
 						message = "";
 					}
-				}else if(jobCode.equals("22")) {
+				}else if(request.equals("22")) {
 					/*메뉴수정*/
 					userData = this.ctlModMenu(title, message);
 					if(userData != null) {
-						jobCode ="2M";
-						message = fc.getRequest(jobCode,userData);
-						jobCode = "22";
+						request ="2M";
+						request+="?";
+						for(int i=0;i<userData.length;i++) {
+							request+= (i==0)?userData[i]:"&"+userData[i];
+						}
+						message = fc.getRequest(request);
+						request = "22";
 					}
-				}
-				else if(jobCode.equals("23")) {
-					/*메뉴수정*/
+				}else if(request.equals("23")) {
+					/*메뉴삭정제*/
 					userData = this.ctlDelMenu(title, message);
 					if(userData != null) {
-						jobCode ="2D";
-						message = fc.getRequest(jobCode,userData);
-						jobCode = "23";
+						request ="2D";
+						request+="?";
+						for(int i=0;i<userData.length;i++) {
+							request+= (i==0)?userData[i]:"&"+userData[i];
+						}
+						message = fc.getRequest(request);
+						request = "23";
 					}
 				}
-				else if(jobCode.equals("32")) {
+				else if(request.equals("32")) {
 					/*회원수정*/
 					userData = this.ctlModMember(title, message);
 					if(userData != null) {
-						jobCode ="3M";
-						message = fc.getRequest(jobCode,userData);
-						jobCode = "32";
+						request ="3M";
+						request+="?";
+						for(int i=0;i<userData.length;i++) {
+							request+= (i==0)?userData[i]:"&"+userData[i];
+						}
+						message = fc.getRequest(request);
+						request = "32";
 					}
 				}
-				else if(jobCode.equals("33")) {
+				else if(request.equals("33")) {
 					/*회원삭제*/
 					userData = this.ctlDelMember(title, message);
 					if(userData != null) {
-						jobCode ="3D";
-						message = fc.getRequest(jobCode,userData);
-						jobCode = "33";
+						request ="3D";
+						request+="?";
+						for(int i=0;i<userData.length;i++) {
+							request+= (i==0)?userData[i]:"&"+userData[i];
+						}
+						message = fc.getRequest(request);
+						request = "33";
 					}
-				}else if(jobCode.equals("13")) {
+				}else if(request.equals("13")) {
 					this.stat(title, message);
-					jobCode = "";
+					request = "";
 					message ="";
-				}else if(jobCode.equals("14")) {
-					this.stat(title, message);
-					jobCode = "";
+				}else if(request.equals("14")) {
+					this.stat2(title, message);
+					request = "";
 					message ="";
 				}
 			}
@@ -615,4 +651,16 @@ public class View {
  *  		  다른 패키지에 있는 클래스사이에서는 private 을 적용
  *  protected : 자식 클래스만 접근을 허용 
  *  private : 모든 클래스(메서드)의 접근을 제한
+ * */
+/*Java Beans
+ * 	- Variable --> Array --> Collection : bean + list
+ * 	- Bean : 자바프레임워크에서 여러 타입의 데이터를 저장할 수 있는 클래스
+ * 			<<<:하나의 빈 갤체와 데이터베이스로 부터 추출되는 하나의 레코드를 담는 역할(이줄이 핵심)>>>
+ * 			- 필드 변수(인스턴스벼수)의 접근제한은 반드시 private로 처리
+ * 			- 필드를 구성하는 변수의 변수명은 소문자로 시작ㅎ나다. 단 복합명사인 
+ * 			  경우 두번째 명사부터는 병사의 첫글자는 대문자로 지정한다.
+ * 			- 생성자는 만들지 않는다.
+ * 			- 필드변수에 접근하는 방법은 메서드화한다.
+ * 				:데이터를 저장할 경우 메서드 이름은 set+필드명으로 한다.
+ * 				:데이터를 추출할 경우 메서드 이름은 get+필드명으로 한다.
  * */

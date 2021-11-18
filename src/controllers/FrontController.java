@@ -14,50 +14,29 @@ public class FrontController {
 	private SalesManagement sales = null;
 	
 	public FrontController() {}
-	
-	public String getRequest(String jobCode) {
-		
-		switch(jobCode.charAt(0)) {
-		case '1':
-			sm = new StoreManagement();
-			message = sm.backController(jobCode);
-			break;
-		case '2':
-			mm = new MenuManagement();
-			message = mm.backController(jobCode);
-			break;
-		case '3':
-			member = new MemberManagement();
-			message = member.backController(jobCode);
-			break;
-		
-		}
-		
-		return message;
-	}
-	
-	
-	public String getRequest(String jobCode, String[] data) {
+	/* jobCode?data&data&data....
+	 * 14?20211101&20211110
+	 * */
+		public String getRequest(String requestData) {
 			
-		switch(jobCode.charAt(0)) {
+		switch(requestData.charAt(0)) {
 		case '1':
 			sm = new StoreManagement();
-			message = sm.backController(jobCode, data);
+			message = sm.backController(requestData);
 		
 			break;
 		case '2':
 			mm = new MenuManagement();
-			message = mm.backController(jobCode, data);
+			message = mm.backController(requestData);
 			break;
 		case '3':
 			member = new MemberManagement();
-			message = member.backController(jobCode, data);
+			message = member.backController(requestData);
 			break;
 		case '4':
 			sales = new SalesManagement();
-			message =sales.backController(jobCode,data);
-			
-			break;	
+			message =sales.backController(requestData);
+			//break;	
 		}
 		
 		return message;

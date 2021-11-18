@@ -7,6 +7,11 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+
+import beans.GoodsBean;
+
+import beans.OrderBean;
 
 public class DataAccessObject {
 
@@ -70,20 +75,27 @@ String[][] getSalesMonthStat(String month){
 	return salesMonthStat;
 }
 
-boolean setOrders(String[] orders) {
+boolean setOrders(ArrayList<OrderBean> list) {
 	boolean response = false;
 	BufferedWriter buffer=null;
+	StringBuffer sb = new StringBuffer();
 	File file = 
 			new File("C:\\posbyhong\\src\\datafile\\orders.txt");
 	try {
 		FileWriter writer = new FileWriter(file, true);
 		buffer = new BufferedWriter(writer);
-		for(int i=0; i<orders.length;i++) {
-			buffer.write(orders[i]);
-			buffer.newLine();
+		for(int i=0; i<list.size();i++) {
+			sb.append(list.get(i).getOrderCode()+",");
+			sb.append(list.get(i).getGoodsCode()+",");
+			sb.append(list.get(i).getOrderQuantity());
+			if(list.get(i).getMemberCode() != null) {
+				sb.append(","+list.get(i).getMemberCode());
+			}
+			sb.append("\n");
 
 		}
-
+		buffer.write(sb.toString());
+		
 
 		response = true;
 	} catch (IOException e) {
@@ -95,17 +107,23 @@ boolean setOrders(String[] orders) {
 	}
 	return response;
 }
-
-public String[] getGoodsInfo(String goodsCode) {
-	String[] goodsInfo = null;
-	BufferedReader buffer=null;
+/*1001 아메리카노 2500   0%*/
+OrderBean getGoodsInfo(OrderBean ob) {
+	
+	OrderBean goodsInfo = new OrderBean();
+	BufferedReader buffer = null;
 	try {
 		buffer = new BufferedReader(new FileReader(new File("C:\\posbyhong\\src\\datafile\\goodsInfo.txt")));
 		String line;
 		while((line=buffer.readLine())!=null) {
-			goodsInfo = line.split("\\|");
-			if(goodsCode.equals(goodsInfo[0])){
-
+			
+			String[] record = line.split("\\|");
+			if(ob.getGoodsCode().equals(record[0])){
+				goodsInfo.setGoodsCode(record[0]);
+				goodsInfo.setGoodsName(record[1]);
+				goodsInfo.setGoodsPrice(Integer.parseInt(record[2]));
+				goodsInfo.setOrderQuantity(0);
+				goodsInfo.setDiscountRate(Integer.parseInt(record[5]));
 
 				break;
 			}
@@ -196,24 +214,24 @@ private int countRecord(String path, String[] condition, int colIndex) {
 	return count;
 }
 
-boolean setMenu(String[] data) {
+boolean setMenu(GoodsBean goods) {
 	boolean check = false;
-	File file = new File("C:\\posbyhong\\src\\datafile\\goodsinfo.txt");
-	FileWriter writer = null;
 	BufferedWriter buffer = null;
+	StringBuffer sb = new StringBuffer();
+	sb.append(goods.getMenuCode() + "|");
+	sb.append(goods.getMenuName()+"|");
+	sb.append(goods.getMenuPrice()+"|");
+	sb.append(goods.getMenuState()+"|");
+	sb.append(goods.getMenuCategory()+"|");
+	sb.append(goods.getDiscountRate());
 
 	try {
-		writer = new FileWriter(file, true);
-		buffer = new BufferedWriter(writer);
-
-		for(int colIndex=0; colIndex<data.length; colIndex++) {
-			buffer.write(data[colIndex]);
-			if(colIndex != data.length-1) {
-				buffer.write("|");
-			}
-		}
+		
+		buffer = new BufferedWriter(new FileWriter(new File("C:\\posbyhong\\src\\datafile\\goodsinfo.txt"),true));
+		buffer.write(sb.toString());
 		buffer.newLine();
 		check = true;
+		
 	}catch(IOException e) {
 
 	} 
@@ -224,26 +242,25 @@ boolean setMenu(String[] data) {
 	return check;
 }
 
-boolean setMenu(String[][] data) {
+boolean setMenu(ArrayList<GoodsBean> list) {
 	boolean check = false;
-	File file = new File("C:\\posbyhong\\src\\datafile\\goodsinfo.txt");
-	FileWriter writer = null;
-	BufferedWriter buffer = null;
 	StringBuffer line = new StringBuffer();
-
+	BufferedWriter buffer = null;
+	
+	for(int recordIndex=0; recordIndex<list.size(); recordIndex++) {
+		line.append(list.get(recordIndex).getMenuCode()+"|");
+		line.append(list.get(recordIndex).getMenuName()+"|");
+		line.append(list.get(recordIndex).getMenuPrice()+"|");
+		line.append(list.get(recordIndex).getMenuState()+"|");
+		line.append(list.get(recordIndex).getMenuCategory()+"|");
+		line.append(list.get(recordIndex).getDiscountRate()+"\n");
+	}
 	try {
-		writer = new FileWriter(file);
-		buffer = new BufferedWriter(writer);
-
-		for(int recordIndex=0; recordIndex<data.length; recordIndex++) {
-			for(int colIndex=0; colIndex<data[0].length; colIndex++) {
-				line.append(data[recordIndex][colIndex]);
-				line.append((colIndex != data[recordIndex].length-1)? "|" : "\n");	
-			}
-		}
+		
+		buffer = new BufferedWriter(new FileWriter(new File("C:\\posbyhong\\src\\datafile\\goodsinfo.txt")));
 		buffer.write(line.toString());
 		check = true;
-	}catch(IOException e) {
+	}catch(IOException e) {//어떠한 입출력 예외의 발생을 통지하는 시그널을 발생시킵니다. 이 클래스는 입출력 처리의 실패, 또는 인터럽트의 발생에 의해 작성되는 예외의 일반적인 클래스입니다.
 
 	} 
 	finally {
@@ -252,27 +269,36 @@ boolean setMenu(String[][] data) {
 
 	return check;
 }
-String[][] getMenu(){
-	String[][] menuList = new String[this.countRecord("C:\\posbyhong\\src\\datafile\\goodsinfo.txt")][];
-	String menu = null;
-	String[] menuInfo = null;
-
-	int index = -1;
-	File file = new File("C:\\posbyhong\\src\\datafile\\goodsinfo.txt");
+ArrayList<GoodsBean> getMenu(){
+	ArrayList<GoodsBean> menuList=new ArrayList<GoodsBean>();
+	GoodsBean goods;
+	String line;
+	String[] menuInfo;
+	BufferedReader buffer=null;
+	
+	
 	try {
-		FileReader reader = new FileReader(file);
-		BufferedReader buffer = new BufferedReader(reader);
+		
+		buffer = new BufferedReader(new FileReader(new File("C:\\posbyhong\\src\\datafile\\goodsinfo.txt")));
+		
 		//1001|아메리카노|2000|1|HOT|10
-		while((menu = buffer.readLine()) != null) {
-			index++;
-			menuInfo = menu.split("\\|");
-			menuList[index] = menuInfo;
+		while((line = buffer.readLine()) != null) {
+			goods=new GoodsBean();
+			menuInfo = line.split("\\|");
+			//System.out.println(menuInfo[0]);
+			goods.setMenuCode(menuInfo[0]);
+			goods.setMenuName(menuInfo[1]);
+			goods.setMenuPrice(Integer.parseInt(menuInfo[2]));
+			goods.setMenuState(menuInfo[3].charAt(0));
+			goods.setMenuCategory(menuInfo[4]);
+			goods.setDiscountRate(Integer.parseInt(menuInfo[5]));
+			menuList.add(goods);
 		}
 		buffer.close();
-	}catch (IOException e) {
-		menuList = null;	
-	}
-
+	}catch(IOException e) {
+		menuList=null;
+	}finally {try {buffer.close();} catch (IOException e) {}
+	}	
 	return menuList;
 }
 
