@@ -39,14 +39,19 @@ public class SalesManagement {
 		}else {
 			/*  4S?1001&1&1001 */
 			/*  4S?1001&1&1002&2&1005 */
+			
 			String memberCode = data[data.length-1];			
-			for(int recordIndex=0; recordIndex<data.length-1; recordIndex+=2) {
+			for(int recordIndex=0; recordIndex<data.length-1; recordIndex+=5) {
 				//recordIndex = recordIndex*2;
 				
 				OrderBean ob = new OrderBean();
 			
 				ob.setGoodsCode(data[recordIndex]);
-				ob.setOrderQuantity(Integer.parseInt(data[recordIndex+1]));
+				ob.setGoodsName(data[recordIndex+1]);
+				ob.setGoodsPrice(Integer.parseInt(data[recordIndex+2]));
+				ob.setOrderQuantity(Integer.parseInt(data[recordIndex+3]));
+				ob.setDiscountRate(Integer.parseInt(data[recordIndex+4]));
+
 				if(data.length %2==1) {
 				ob.setMemberCode(memberCode);}
 				orders.add(ob);
@@ -68,25 +73,18 @@ public class SalesManagement {
 	}
 	
 	/* 주문처리 */
-	private String ctlOrders(ArrayList orders) {
+	private String ctlOrders(ArrayList<OrderBean> orders) {
 		String message = null;
 		dao = new DataAccessObject();
 		String date = now();
 		for(int recordIndex=0; recordIndex<orders.size(); recordIndex++) {
 			 //orders.set(recordIndex, date);
-			 ((OrderBean)orders.get(recordIndex)).setOrderCode(date);
+			 (orders.get(recordIndex)).setOrderCode(date);
 		}
 		
-		String[] daoOrders = new String[orders.size()];
-		for(int recordIndex=0; recordIndex<daoOrders.length; recordIndex++) {
-			daoOrders[recordIndex] = ((OrderBean)orders.get(recordIndex)).getOrderCode() +
-					"," + ((OrderBean)orders.get(recordIndex)).getGoodsCode() + 
-					"," + ((OrderBean)orders.get(recordIndex)).getOrderQuantity() + 
-					(((OrderBean)orders.get(recordIndex)).getMemberCode() != null? "," + ((OrderBean)orders.get(recordIndex)).getMemberCode() : "");
-		}
-		
+				
 		/* boolean result = dao.setOrders(String[] orders) */
-		message = dao.setOrders(daoOrders)? "주문이 완료되었습니다.":"죄송합니다.~~~";
+		message = dao.setOrders(orders)? "주문이 완료되었습니다.":"죄송합니다.~~~";
 		return message;
 	}
 	
@@ -97,15 +95,20 @@ public class SalesManagement {
 	}
 	
 	/* 판매개시 */
-	private String ctlSales(ArrayList orders) {
+	private String ctlSales(ArrayList<OrderBean> orders) {
 		String goodsInfo;
+		OrderBean ob =null;
 		// 전달 받은 상품코드로 상품 검색 후 상품정보 전달
 		dao = new DataAccessObject();
 		/* 10000001   (HOT)아메리카노   2500   qty     0% */
-		String[] rowData = dao.getGoodsInfo(((OrderBean)orders.get(0)).getGoodsCode());
-		System.out.println(rowData[0]);
-		goodsInfo = rowData[0] + "," + rowData[1] + "," + rowData[2] + "," + "0" + "," + rowData[5];
+		ob = dao.getGoodsInfo(orders.get(0));
 		
-		return goodsInfo;
+		StringBuffer sb = new StringBuffer();
+		sb.append(ob.getGoodsCode()+",");
+		sb.append(ob.getGoodsName()+",");
+		sb.append(ob.getGoodsPrice()+",");
+		sb.append(ob.getOrderQuantity()+",");
+		sb.append(ob.getDiscountRate());
+		return sb.toString();
 	}
 }

@@ -1,7 +1,10 @@
 package models;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+
+import beans.StoreBean;
 
 public class StoreManagement {
 	private Date d;
@@ -12,9 +15,16 @@ public class StoreManagement {
 		d = new Date();
 		dao = new DataAccessObject();
 	}
-
-	public String backController(String jobCode) {
+//13?2012111
+	public String backController(String data) {
 		String message = null;
+		String rowData=null,jobCode=null;
+		if(data.indexOf('?') != -1) {
+		jobCode=data.substring(0,data.indexOf('?'));
+		rowData=data.substring(data.indexOf('?')+1);
+		}else {
+			jobCode=data;
+		}
 		switch(jobCode) {
 		case "11":
 			message = this.ctlStoreOpen();
@@ -23,42 +33,32 @@ public class StoreManagement {
 			this.ctlStoreClose();
 			break;
 		case "13":
-			this.ctlTodaySales();
-			break;
-		case "14":
-			this.ctlSalesAnalisis();
-			break;
-		}
-		return message;
-	}
-	public String backController(String jobCode,String[] data) {
-		String message = null;
-		switch(jobCode) {
-		case "13":
-			message=this.getSalesMonthStat(data);
+			message=this.getSalesMonthStat(rowData);
 			
 			break;
 		case "14":
-			message=this.getSelectedStat(data);
+			message=this.getSelectedStat(rowData);
 			
 			break;
 		}
 		return message;
 	}
+	
 
 	/*jobCode :: 14 >> 해당범위 매출현황*/
-	private String getSelectedStat(String[] data) {
+	private String getSelectedStat(String data) {
 		String message=null;
-		String[][] salesStat = null;
+		ArrayList<StoreBean> salesStat;
 		dao = new DataAccessObject();
 		
-		salesStat = dao.getSalesStat(data);
+		String[] date=data.split("&");
+		salesStat = dao.getSalesStat(date);
 		/* 해당월   건수    매출액    할인적용매출액 
 		 * */
 		StringBuffer buffer = new StringBuffer();
-		buffer.append(" "+data[0]);
+		buffer.append(" "+data);
 		buffer.append("\t");
-		buffer.append(salesStat.length);
+		buffer.append(salesStat.size());
 		buffer.append("\t");
 		buffer.append(this.getSalesAmount(salesStat));
 		buffer.append("\t");
@@ -67,18 +67,18 @@ public class StoreManagement {
 	}
 	
 	/*jobCode :: 13 >> 금월 매출현황*/
-	private String getSalesMonthStat(String[] data) {
+	private String getSalesMonthStat(String data) {
 		String message=null;
-		String[][] salesMonthStat = null;
+		ArrayList<StoreBean> salesMonthStat;
 		dao = new DataAccessObject();
 		
-		salesMonthStat = dao.getSalesMonthStat(data[0]);
-		/* 해당월   건수    매출액    할인적용매출액 
+		salesMonthStat = dao.getSalesMonthStat(data);
+				/* 해당월   건수    매출액    할인적용매출액 
 		 * */
 		StringBuffer buffer = new StringBuffer();
-		buffer.append(" "+data[0]);
+		buffer.append(" "+data);
 		buffer.append("\t");
-		buffer.append(salesMonthStat.length);
+		buffer.append(salesMonthStat.size());
 		buffer.append("\t");
 		buffer.append(this.getSalesAmount(salesMonthStat));
 		buffer.append("\t");
@@ -86,20 +86,20 @@ public class StoreManagement {
 		return buffer.toString();
 	}
 
-	private int getDiscountSalesAmount(String[][] stat) {
+	private int getDiscountSalesAmount(ArrayList<StoreBean> stat) {
 		int sum=0;
-		for(int recordIndex=0; recordIndex<stat.length; recordIndex++) {
+		for(int recordIndex=0; recordIndex<stat.size(); recordIndex++) {
 			// 202109060918,1005,카푸치노(HOT),2700,8,0,1002
-			sum += (Integer.parseInt(stat[recordIndex][3])*Integer.parseInt(stat[recordIndex][4]))*((100-Integer.parseInt(stat[recordIndex][5]))/100.0);//실수로 나누어서 값도 실수
+			sum += (Integer.parseInt(stat.get(recordIndex).getStoreMenuPrice())*Integer.parseInt(stat.get(recordIndex).getStoreCountNumber()))*((100-Integer.parseInt(stat.get(recordIndex).getStoreDiscountRate()))/100.0);//실수로 나누어서 값도 실수
 		}
 		return sum;
 	}
 
-	private int getSalesAmount(String[][] stat) {
+	private int getSalesAmount(ArrayList<StoreBean> stat) {
 		int sum=0;
-		for(int recordIndex=0; recordIndex<stat.length; recordIndex++) {
+		for(int recordIndex=0; recordIndex<stat.size(); recordIndex++) {
 			// 202109060918,1005,카푸치노(HOT),2700,8,0,1002
-			sum += Integer.parseInt(stat[recordIndex][3])*Integer.parseInt(stat[recordIndex][4]);
+			sum += Integer.parseInt(stat.get(recordIndex).getStoreMenuPrice())*Integer.parseInt(stat.get(recordIndex).getStoreCountNumber());
 		}
 		return sum;
 	}
@@ -120,7 +120,18 @@ public class StoreManagement {
 	}
 
 	/*jobCode :: 12  >> 매장클로즈 처리 */
-	private void ctlStoreClose() {
+	private String ctlStoreClose() {
+		boolean response;
+		//  1-1. yyyyMMdd & HHmmss
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+		// 2. 파일 저장
+		//  2-1. 파일 접근 클래스 호출 :: DataAccessObject.class
+		// 3. 매장오픈이 처리되었는지 안되었는지 응답 받기  true ::오픈성공 false:오픈실패
+		response = dao.setStoreState(sdf.format(d).substring(0, 8), 
+				sdf.format(d).substring(8), -1);
+		 
+		// 4. View에 전달에 메세지 리턴
+		return (response)? "매장이 클로즈되었습니다." : "매장 클로즈가 실패하였습니다.";
 		
 	}
 
