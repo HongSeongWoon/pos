@@ -1,84 +1,64 @@
 package models;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 
 import beans.StoreBean;
 
 public class StoreManagement {
 	private Date d;
-	private DataAccessObject dao;
-	
+	private OracleDAO dao =null;
+	private StoreBean store;
+
 	public StoreManagement() {
 		// 1. 현재 시스템 날짜와 시간을 취득  yyyyMMddHHmmss
 		d = new Date();
-		dao = new DataAccessObject();
+
 	}
-//13?2012111
-	public String backController(String data) {
+
+	public String backController(String jobCodeData) {
 		String message = null;
-		String rowData=null,jobCode=null;
-		if(data.indexOf('?') != -1) {
-		jobCode=data.substring(0,data.indexOf('?'));
-		rowData=data.substring(data.indexOf('?')+1);
-		}else {
-			jobCode=data;
-		}
+		String jobCode= jobCodeData.substring(0,2);
 		switch(jobCode) {
 		case "11":
-			message = this.ctlStoreOpen();
+			message = this.ctlStoreOpen(jobCodeData.substring(jobCodeData.indexOf('?')+1));
 			break;
 		case "12":
-			this.ctlStoreClose();
+			message = this.ctlStoreClose(jobCodeData.substring(jobCodeData.indexOf('?')+1));
 			break;
 		case "13":
-			message=this.getSalesMonthStat(rowData);
-			
+			this.ctlTodaySales();
 			break;
 		case "14":
-			message=this.getSelectedStat(rowData);
-			
+			this.ctlSalesAnalisis();
 			break;
 		}
 		return message;
 	}
-	
 
-	/*jobCode :: 14 >> 해당범위 매출현황*/
-	private String getSelectedStat(String data) {
-		String message=null;
-		ArrayList<StoreBean> salesStat;
-		dao = new DataAccessObject();
-		
-		String[] date=data.split("&");
-		salesStat = dao.getSalesStat(date);
+	public String backController(String jobCode, String[] data) {
+		String message = null;
+		switch(jobCode) {
+		case "13":
+			message = getSalesMonthStat(data);
+			break;
+		}
+
+		return message;
+	}
+
+	/*jobCode :: 13  >> 금월 매출현황 */
+	private String getSalesMonthStat(String[] data) {
+		String message = null;
+		String[][] salesMonthStat = null;
+		dao = new  OracleDAO();
+		salesMonthStat = null;//추후수정
 		/* 해당월   건수    매출액    할인적용매출액 
 		 * */
 		StringBuffer buffer = new StringBuffer();
-		buffer.append(" "+data);
+		buffer.append(" " + data[0]);
 		buffer.append("\t");
-		buffer.append(salesStat.size());
-		buffer.append("\t");
-		buffer.append(this.getSalesAmount(salesStat));
-		buffer.append("\t");
-		buffer.append(this.getDiscountSalesAmount(salesStat));
-		return buffer.toString();
-	}
-	
-	/*jobCode :: 13 >> 금월 매출현황*/
-	private String getSalesMonthStat(String data) {
-		String message=null;
-		ArrayList<StoreBean> salesMonthStat;
-		dao = new DataAccessObject();
-		
-		salesMonthStat = dao.getSalesMonthStat(data);
-				/* 해당월   건수    매출액    할인적용매출액 
-		 * */
-		StringBuffer buffer = new StringBuffer();
-		buffer.append(" "+data);
-		buffer.append("\t");
-		buffer.append(salesMonthStat.size());
+		buffer.append(salesMonthStat.length);
 		buffer.append("\t");
 		buffer.append(this.getSalesAmount(salesMonthStat));
 		buffer.append("\t");
@@ -86,53 +66,138 @@ public class StoreManagement {
 		return buffer.toString();
 	}
 
-	private int getDiscountSalesAmount(ArrayList<StoreBean> stat) {
-		int sum=0;
-		for(int recordIndex=0; recordIndex<stat.size(); recordIndex++) {
+	/* 매출액 구하기 */
+	private int getSalesAmount(String[][] stat) {
+		int sum = 0;
+		for(int recordIndex=0; recordIndex<stat.length; recordIndex++) {
 			// 202109060918,1005,카푸치노(HOT),2700,8,0,1002
-			sum += (Integer.parseInt(stat.get(recordIndex).getStoreMenuPrice())*Integer.parseInt(stat.get(recordIndex).getStoreCountNumber()))*((100-Integer.parseInt(stat.get(recordIndex).getStoreDiscountRate()))/100.0);//실수로 나누어서 값도 실수
+			sum += Integer.parseInt(stat[recordIndex][3]) * Integer.parseInt(stat[recordIndex][4]);
 		}
 		return sum;
 	}
-
-	private int getSalesAmount(ArrayList<StoreBean> stat) {
-		int sum=0;
-		for(int recordIndex=0; recordIndex<stat.size(); recordIndex++) {
+	/* 할인매출액 구하기 */
+	private int getDiscountSalesAmount(String[][] stat) {
+		int sum = 0;
+		for(int recordIndex=0; recordIndex<stat.length; recordIndex++) {
 			// 202109060918,1005,카푸치노(HOT),2700,8,0,1002
-			sum += Integer.parseInt(stat.get(recordIndex).getStoreMenuPrice())*Integer.parseInt(stat.get(recordIndex).getStoreCountNumber());
+			sum += (Integer.parseInt(stat[recordIndex][3]) * Integer.parseInt(stat[recordIndex][4])) * ((100 - Integer.parseInt(stat[recordIndex][5]))/100.0);
 		}
 		return sum;
 	}
-
 	/*jobCode :: 11  >> 매장오픈 처리 */
-	private String ctlStoreOpen() {
+	private String ctlStoreOpen(String clientData) {
+		String message ="";
 		boolean response;
-		//  1-1. yyyyMMdd & HHmmss
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-		// 2. 파일 저장
-		//  2-1. 파일 접근 클래스 호출 :: DataAccessObject.class
-		// 3. 매장오픈이 처리되었는지 안되었는지 응답 받기  true ::오픈성공 false:오픈실패
-		response = dao.setStoreState(sdf.format(d).substring(0, 8), 
-				sdf.format(d).substring(8), 1);
-		 
-		// 4. View에 전달에 메세지 리턴
-		return (response)? "매장이 오픈되었습니다." : "매장 오픈이 실패하였습니다.";
+		boolean tranState = false;
+		store = new StoreBean();
+
+		/*split을 이용한 데이터분리*/
+		String[] data = clientData.split("&");
+		store.setSeCode(data[0]);
+		store.setEmCode(data[1]);
+		store.setSeState(9);
+
+		dao = new OracleDAO();
+		
+		/* PROCESS
+		 * 0. CONNECTION 생성
+		 * 1. STOFRES :: SELECT << 매장코드 >> R:1  >> P2
+		 * 	  DAO :: ISSOTRE
+		 * 2. EMPLOYEES :: SELECT << 직원코드  >> R:1 >> P3
+		 *    DAO :: ISEMPLYEE
+		 * 3. STOREHISTORY :: INSERT << 오픈일시, 매장코드, 직원코드, 9>> R:1
+		 * DAO : STOREMANAGEMENT
+		 * 4. STOREHISTORY :: SELECT << 매장코드, 오픈일 >> R:오픈일시
+		 * 5. TRANSACTION END
+		 * 
+		 * */
+		dao.startTransaction(false);
+		if(dao.isStore(store)) {
+			System.out.println(1);
+			if(dao.isEmployee(store)) {
+				System.out.println(2);
+				if(dao.storeManagement(store)) {
+					System.out.println(3);
+					if((store=dao.getStoreInfo(store)) != null) {
+						System.out.println(4);
+						System.out.println(store.getSeDate());
+						System.out.println(store.getSeCode());
+						System.out.println(store.getEmCode());
+						
+							tranState = true;
+						}else {
+						message ="잠시후 다시 시도해주세요!";
+					}
+
+				}else {
+					message ="잠시후 다시 시도해주세요!"; 
+				}
+
+			}else {
+				message ="존재하지 않는 직원코드!"; 
+			}
+
+		}else {
+			message ="존재하지 않는 매장코드!"; 
+		}
+
+		
+		dao.endTransaction(tranState);
+		
+		return message;
+		/*클라이언트 보낼 정보 가공*/
+
 	}
 
 	/*jobCode :: 12  >> 매장클로즈 처리 */
-	private String ctlStoreClose() {
+	private String ctlStoreClose(String clientData) {
+		String message ="";
 		boolean response;
-		//  1-1. yyyyMMdd & HHmmss
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-		// 2. 파일 저장
-		//  2-1. 파일 접근 클래스 호출 :: DataAccessObject.class
-		// 3. 매장오픈이 처리되었는지 안되었는지 응답 받기  true ::오픈성공 false:오픈실패
-		response = dao.setStoreState(sdf.format(d).substring(0, 8), 
-				sdf.format(d).substring(8), -1);
-		 
-		// 4. View에 전달에 메세지 리턴
-		return (response)? "매장이 클로즈되었습니다." : "매장 클로즈가 실패하였습니다.";
+		boolean tranState = false;
+		store = new StoreBean();
+
+		/*split을 이용한 데이터분리*/
+		String[] data = clientData.split("&");
+		store.setSeCode(data[0]);
+		store.setEmCode(data[1]);
+		store.setSeState(-9);
+
+		dao = new OracleDAO();
 		
+		dao.startTransaction(false);
+		if(dao.isStore(store)) {
+			System.out.println(1);
+			if(dao.isEmployee(store)) {
+				System.out.println(2);
+				if(dao.storeManagement(store)) {
+					System.out.println(3);
+					if((store=dao.getStoreInfo(store)) != null) {
+						System.out.println(4);
+						System.out.println(store.getSeDate());
+						System.out.println(store.getSeCode());
+						System.out.println(store.getEmCode());
+						
+							tranState = true;
+						}else {
+						message ="잠시후 다시 시도해주세요!";
+					}
+
+				}else {
+					message ="잠시후 다시 시도해주세요!"; 
+				}
+
+			}else {
+				message ="존재하지 않는 직원코드!"; 
+			}
+
+		}else {
+			message ="존재하지 않는 매장코드!"; 
+		}
+
+		
+		dao.endTransaction(tranState);
+		
+		return message;
 	}
 
 	/*jobCode :: 13  >> 금일 매출 현황 처리 */
